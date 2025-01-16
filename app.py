@@ -4,6 +4,7 @@ import joblib
 import xgboost as xgb
 import os
 import numpy as np
+from xgboost import XGBClassifier
 
 # Print XGBoost version for debugging
 st.write(f"XGBoost version: {xgb.__version__}")
