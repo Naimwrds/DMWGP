@@ -1,10 +1,24 @@
 import streamlit as st
+from PIL import Image
 import pandas as pd
 import joblib
 import xgboost as xgb
 import os
 import numpy as np
 from xgboost import XGBClassifier
+
+image = Image.open('LoanApplication.jpg')
+st.image(image, width=400)
+
+logo = Image.open("Loan icon 2.png")
+st.sidebar.image(logo, width=200)
+
+st.sidebar.markdown("## About the App")
+st.sidebar.write("""
+This app provides insights into past loan applications and predicts loan statuses 
+based on user inputs. Please navigate through the dashboard and prediction tools 
+to explore more.
+""")
 
 # Print XGBoost version for debugging
 st.write(f"XGBoost version: {xgb.__version__}")
@@ -119,7 +133,7 @@ def show_dashboard():
         # Load dataset
         dataset = pd.read_csv("loan_data.csv")
 
-        # Calculate accepted and rejected percentages
+        # 1. Calculate accepted and rejected percentages
         accepted_count = dataset[dataset["loan_status"] == 1].shape[0]
         rejected_count = dataset[dataset["loan_status"] == 0].shape[0]
         total_count = dataset.shape[0]
@@ -127,12 +141,93 @@ def show_dashboard():
         accepted_percentage = (accepted_count / total_count) * 100
         rejected_percentage = (rejected_count / total_count) * 100
 
-        st.write("### Loan Application Summary")
-        st.write(f"Accepted Applications: {accepted_count} ({accepted_percentage:.2f}%)")
-        st.write(f"Rejected Applications: {rejected_count} ({rejected_percentage:.2f}%)")
+        # 2. Most common loan intent categories
+        loan_intent_counts = dataset["loan_intent"].value_counts()
 
-        # Show bar chart
+        # 3. Display average,min and max interest rate so far
+        avg_loan_interest_rate = dataset["loan_int_rate"].mean()
+        min_loan_interest_rate = dataset["loan_int_rate"].min()
+        max_loan_interest_rate = dataset["loan_int_rate"].max()
+
+        # 4. Most education level applied for loan
+        loan_person_education_counts = dataset["person_education"].value_counts()
+        
+        # 5. Average, min, and max loan amount
+        avg_loan_amount = dataset["loan_amnt"].mean()
+        min_loan_amount = dataset["loan_amnt"].min()
+        max_loan_amount = dataset["loan_amnt"].max()
+
+        # 6. Income distribution for loan applicants
+        income_stats = dataset["person_income"].describe()
+
+        # 7. Loan acceptance rates based on credit score
+        accepted_loans = dataset[dataset["loan_status"] == 1]
+        rejected_loans = dataset[dataset["loan_status"] == 0]
+
+        min_credit_score_accepted = accepted_loans["credit_score"].min()
+        max_credit_score_rejected = rejected_loans["credit_score"].max()
+        
+        # 8. Percentage of loans with previous defaults
+        previous_default_yes = dataset[dataset["previous_loan_defaults_on_file"] == "Yes"].shape[0]
+        previous_default_no = dataset[dataset["previous_loan_defaults_on_file"] == "No"].shape[0]
+        total_loans = dataset.shape[0]
+
+        percentage_defaults = (previous_default_yes / total_loans) * 100
+        percentage_nondefaults = (previous_default_no / total_loans) * 100
+        
+        # 1. Loan accepted & rejected
+        st.write("### 1. Loan Application Summary")
+        st.markdown(f"<h4 style='color:green;'>Accepted Applications: {accepted_count} ({accepted_percentage:.2f}%)</h4>", unsafe_allow_html=True)
+        st.markdown(f"<h4 style='color:red;'>Rejected Applications: {rejected_count} ({rejected_percentage:.2f}%)</h4>", unsafe_allow_html=True)
         st.bar_chart({"Accepted": accepted_count, "Rejected": rejected_count})
+            
+        # 2. Loan Intent Distribution
+        st.write("### 2. Most Common Loan Intents")
+        st.bar_chart(loan_intent_counts)
+        
+        # 3. Display average, min, and max interest rate
+        st.write("### 3. Interest Rate")
+        st.markdown(f"<h4 style='color:blue;'>Average Loan Interest Rate: {avg_loan_interest_rate:.2f}%</h4>", unsafe_allow_html=True)
+        st.markdown(f"<h4 style='color:green;'>Minimum Loan Interest Rate: {min_loan_interest_rate:.2f}%</h4>", unsafe_allow_html=True)
+        st.markdown(f"<h4 style='color:red;'>Maximum Loan Interest Rate: {max_loan_interest_rate:.2f}%</h4>", unsafe_allow_html=True)     
+        
+        # 4. Most Education Level applied for Loan
+        st.write("### 4. Most Education Level applied for Loan")
+        st.bar_chart(loan_person_education_counts)
+
+        # 5. Display average, min, and max loan amount
+        st.write("### 5. Loan Amount")
+        st.markdown(f"<h4 style='color:blue;'>Average Loan Amount: {avg_loan_amount:.2f}</h4>", unsafe_allow_html=True)
+        st.markdown(f"<h4 style='color:green;'>Minimum Loan Amount: {min_loan_amount:.2f}</h4>", unsafe_allow_html=True)
+        st.markdown(f"<h4 style='color:red;'>Maximum Loan Amount: {max_loan_amount:.2f}</h4>", unsafe_allow_html=True)
+        
+        # 6. Income Analysis
+        st.write("### 6. Income Distribution Statistics")
+        st.write(income_stats)
+        
+        # 7. Credit Score Analysis
+        st.write("### 7. Credit Score Analysis")
+        st.markdown(f"<h4 style='color:green;'>Minimum Credit Score for Accepted Loans: {min_credit_score_accepted:.2f}</h4>", unsafe_allow_html=True)
+        st.markdown(f"<h4 style='color:red;'>Maximum Credit Score for Rejected Loans: {max_credit_score_rejected:.2f}</h4>", unsafe_allow_html=True)   
+        
+        # 8. Previous Defaults
+        st.write("### 8. Previous Defaults Analysis")
+        # Loans with Previous Defaults
+        st.metric(
+        label="Loans with Previous Defaults",
+        value=f"{previous_default_yes}",
+        delta=f"{percentage_defaults:.2f}%",
+        delta_color="normal"  
+        )
+        # Loans without Previous Defaults
+        st.metric(
+            label="Loans without Previous Defaults",
+            value=f"{previous_default_no}",
+            delta=f"{percentage_nondefaults:.2f}%",
+            delta_color="inverse"  
+        )
+
+        
     except Exception as e:
         st.error(f"Error displaying dashboard: {e}")
 
